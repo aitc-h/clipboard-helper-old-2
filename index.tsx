@@ -29,6 +29,18 @@ function Button(props: ButtonProps) {
   );
 }
 
+function ConditionalButton(props: {
+  text: string;
+  conditional: boolean;
+  onClick?: (arg0: any) => void;
+}) {
+  if (props.conditional) {
+    return <button onClick={props.onClick}>{props.text}</button>;
+  } else {
+    return null;
+  }
+}
+
 interface AppProps {}
 function App(props: AppProps) {
   /* State */
@@ -67,7 +79,7 @@ function App(props: AppProps) {
     ]);
   }
 
-  function addButton(row: number) {
+  function addButtonToRow(row: number) {
     setButtons((prevState: ButtonData[]) => {
       let col =
         prevState
@@ -93,30 +105,35 @@ function App(props: AppProps) {
       {/* For each unique row number */}
       {[...new Set(buttons.map((e) => e.row))].sort().map((rowNumber) => (
         <div className="button-row">
-          {editMode ? <button>X</button> : null}
+          <ConditionalButton conditional={editMode} text="X Delete Row" />
           {buttons
             .filter((e) => e.row == rowNumber)
             .sort((a, b) => a.col - b.col)
             .map((button) => (
-              <Button
-                data={button}
-                editMode={editMode}
-                setButtonText={setButtonText}
-                copyToClipboard={setCurrentClipboard}
-              />
+              <div className="button">
+                <ConditionalButton conditional={editMode} text="X" />
+                <Button
+                  data={button}
+                  editMode={editMode}
+                  setButtonText={setButtonText}
+                  copyToClipboard={setCurrentClipboard}
+                />
+              </div>
             ))}
-          {editMode ? (
-            <button
-              onClick={() => {
-                addButton(rowNumber);
-              }}
-            >
-              +
-            </button>
-          ) : null}
+          <ConditionalButton
+            text="+"
+            conditional={editMode}
+            onClick={() => {
+              addButtonToRow(rowNumber);
+            }}
+          />
         </div>
       ))}
-      {editMode ? <button onClick={addRow}>+ Add Row</button> : null}
+      <ConditionalButton
+        conditional={editMode}
+        text="+ Add Row"
+        onClick={addRow}
+      />
     </div>
   );
 
