@@ -1,7 +1,15 @@
 import React = require('react');
+import { useState, useEffect } from 'react';
 import { render } from 'react-dom';
 import './style.css';
 import { nanoid } from 'nanoid';
+
+const EXAMPLE_DATA = [
+  { text: 'abc', id: nanoid(), row: 0, col: 0 },
+  { text: 'def', id: nanoid(), row: 0, col: 1 },
+  { text: 'foo', id: nanoid(), row: 1, col: 0 },
+  { text: 'bar', id: nanoid(), row: 2, col: 0 },
+] as ButtonData[];
 
 interface ButtonData {
   text: string;
@@ -44,14 +52,19 @@ function ConditionalButton(props: {
 interface AppProps {}
 function App(props: AppProps) {
   /* State */
-  const [editMode, setEditMode] = React.useState(false);
-  const [currentClipboard, setCurrentClipboard] = React.useState('');
-  const [buttons, setButtons] = React.useState([
-    { text: 'abc', id: nanoid(), row: 0, col: 0 },
-    { text: 'def', id: nanoid(), row: 0, col: 1 },
-    { text: 'foo', id: nanoid(), row: 1, col: 0 },
-    { text: 'bar', id: nanoid(), row: 2, col: 0 },
-  ] as ButtonData[]);
+  const [editMode, setEditMode] = useState(false);
+  const [currentClipboard, setCurrentClipboard] = useState('');
+
+  const [listID, setListID] = useState(() => {
+    const saved = localStorage.getItem('listID');
+    const initialValue = JSON.parse(saved);
+    return initialValue || nanoid();
+  });
+  const [buttons, setButtons] = useState(() => {
+    const saved = localStorage.getItem(listID);
+    const initialValue = JSON.parse(saved) as ButtonData[];
+    return initialValue || EXAMPLE_DATA;
+  });
 
   /* Callback functions */
   function setButtonText(id: string, text: string) {
@@ -61,22 +74,6 @@ function App(props: AppProps) {
       newState[i].text = text;
       return newState;
     });
-  }
-
-  function addRow() {
-    setButtons((prevState: ButtonData[]) => [
-      ...prevState,
-      {
-        text: '',
-        id: nanoid(),
-        row:
-          buttons
-            .map((e) => e.row)
-            .sort()
-            .slice(-1)[0] + 1,
-        col: 0,
-      },
-    ]);
   }
 
   function addButtonToRow(row: number) {
@@ -99,19 +96,60 @@ function App(props: AppProps) {
     });
   }
 
+  function deleteButton(id: string) {
+    setButtons((prevState: ButtonData[]) =>
+      prevState.filter((e) => e.id != id)
+    );
+  }
+
+  function addRow() {
+    setButtons((prevState: ButtonData[]) => [
+      ...prevState,
+      {
+        text: '',
+        id: nanoid(),
+        row:
+          buttons
+            .map((e) => e.row)
+            .sort()
+            .slice(-1)[0] + 1,
+        col: 0,
+      },
+    ]);
+  }
+
+  function deleteRow(row: number) {
+    setButtons((prevState: ButtonData[]) =>
+      prevState.filter((e) => e.row != row)
+    );
+  }
+
+  function save() {
+    localStorage.setItem('listID', listID);
+    localStorage.setItem(listID, JSON.stringify(buttons));
+  }
+
   /* Components */
   const buttonView = (
     <div>
       {/* For each unique row number */}
       {[...new Set(buttons.map((e) => e.row))].sort().map((rowNumber) => (
         <div className="button-row">
-          <ConditionalButton conditional={editMode} text="X Delete Row" />
+          <ConditionalButton
+            conditional={editMode}
+            text="X Delete Row"
+            onClick={() => deleteRow(rowNumber)}
+          />
           {buttons
             .filter((e) => e.row == rowNumber)
             .sort((a, b) => a.col - b.col)
             .map((button) => (
               <div className="button">
-                <ConditionalButton conditional={editMode} text="X" />
+                <ConditionalButton
+                  conditional={editMode}
+                  text="X"
+                  onClick={() => deleteButton(button.id)}
+                />
                 <Button
                   data={button}
                   editMode={editMode}
@@ -137,15 +175,7 @@ function App(props: AppProps) {
     </div>
   );
 
-  const saveButton = (
-    <button
-      onClick={() => {
-        console.log('save');
-      }}
-    >
-      Save
-    </button>
-  );
+  const saveButton = <button onClick={save}>Save</button>;
 
   const editButton = (
     <button
