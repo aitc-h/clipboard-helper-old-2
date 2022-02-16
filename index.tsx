@@ -7,6 +7,7 @@ interface ButtonData {
   text: string;
   id: string;
   row: number;
+  col: number;
 }
 
 interface ButtonProps {
@@ -34,10 +35,10 @@ function App(props: AppProps) {
   const [editMode, setEditMode] = React.useState(false);
   const [currentClipboard, setCurrentClipboard] = React.useState('');
   const [buttons, setButtons] = React.useState([
-    { text: 'abc', id: nanoid(), row: 0 },
-    { text: 'def', id: nanoid(), row: 0 },
-    { text: 'foo', id: nanoid(), row: 1 },
-    { text: 'bar', id: nanoid(), row: 2 },
+    { text: 'abc', id: nanoid(), row: 0, col: 0 },
+    { text: 'def', id: nanoid(), row: 0, col: 1 },
+    { text: 'foo', id: nanoid(), row: 1, col: 0 },
+    { text: 'bar', id: nanoid(), row: 2, col: 0 },
   ] as ButtonData[]);
 
   /* Callback functions */
@@ -50,13 +51,52 @@ function App(props: AppProps) {
     });
   }
 
+  function addRow() {
+    setButtons((prevState: ButtonData[]) => [
+      ...prevState,
+      {
+        text: '',
+        id: nanoid(),
+        row:
+          buttons
+            .map((e) => e.row)
+            .sort()
+            .slice(-1)[0] + 1,
+        col: 0,
+      },
+    ]);
+  }
+
+  function addButton(row: number) {
+    setButtons((prevState: ButtonData[]) => {
+      let col =
+        prevState
+          .filter((button) => button.row == row)
+          .map((button) => button.col)
+          .sort()
+          .splice(-1)[0] + 1;
+      return [
+        ...prevState,
+        {
+          text: '',
+          id: nanoid(),
+          row: row,
+          col: col,
+        },
+      ];
+    });
+  }
+
   /* Components */
   const buttonView = (
     <div>
+      {/* For each unique row number */}
       {[...new Set(buttons.map((e) => e.row))].sort().map((rowNumber) => (
         <div className="button-row">
+          {editMode ? <button>X</button> : null}
           {buttons
             .filter((e) => e.row == rowNumber)
+            .sort((a, b) => a.col - b.col)
             .map((button) => (
               <Button
                 data={button}
@@ -65,8 +105,18 @@ function App(props: AppProps) {
                 copyToClipboard={setCurrentClipboard}
               />
             ))}
+          {editMode ? (
+            <button
+              onClick={() => {
+                addButton(rowNumber);
+              }}
+            >
+              +
+            </button>
+          ) : null}
         </div>
       ))}
+      {editMode ? <button onClick={addRow}>+ Add Row</button> : null}
     </div>
   );
 
@@ -80,6 +130,16 @@ function App(props: AppProps) {
     </button>
   );
 
+  const editButton = (
+    <button
+      onClick={() => {
+        setEditMode(!editMode);
+      }}
+    >
+      Edit
+    </button>
+  );
+
   return (
     <div>
       <div>Current clipboard: {currentClipboard}</div>
@@ -87,13 +147,7 @@ function App(props: AppProps) {
       <div className="button-list">{buttonView}</div>
       <br />
       {saveButton}
-      <button
-        onClick={() => {
-          setEditMode(!editMode);
-        }}
-      >
-        Edit
-      </button>
+      {editButton}
     </div>
   );
 }
